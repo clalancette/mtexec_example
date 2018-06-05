@@ -10,6 +10,8 @@
 
 #include "gtg_msgs/srv/go_to_goal_pose.hpp"
 
+rclcpp::callback_group::CallbackGroup::SharedPtr cb_grp;
+
 class NavNode final : public rclcpp::Node
 {
 public:
@@ -19,13 +21,16 @@ public:
                                                                                         std::bind(&NavNode::goToGoalPose,
                                                                                                   this,
                                                                                                   std::placeholders::_1,
-                                                                                                  std::placeholders::_2));
+                                                                                                  std::placeholders::_2),
+                                                                             rmw_qos_profile_services_default,
+                                                                             cb_grp);
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("odom",
                                                                    std::bind(&NavNode::odomCallback,
                                                                              this,
                                                                              std::placeholders::_1),
-                                                                   rmw_qos_profile_sensor_data);
+                                                                   rmw_qos_profile_sensor_data,
+                                                                   cb_grp);
   }
 
 private:
@@ -60,7 +65,11 @@ private:
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_unique<NavNode>());
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto nav = std::make_shared<NavNode>();
+  cb_grp = nav->create_callback_group(rclcpp::callback_group::CallbackGroupType::Reentrant);
+  executor.add_node(nav);
+  executor.spin();
   rclcpp::shutdown();
   return 0;
 }
