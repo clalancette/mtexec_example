@@ -1,0 +1,7 @@
+float64 goal_x_m
+float64 goal_y_m
+float64 goal_theta_rad
+float64 speed_m_per_s
+---
+int32 status
+string msg
