@@ -10,27 +10,28 @@
 
 #include "gtg_msgs/srv/go_to_goal_pose.hpp"
 
-rclcpp::callback_group::CallbackGroup::SharedPtr cb_grp;
-
 class NavNode final : public rclcpp::Node
 {
 public:
   NavNode() : Node("nav_node")
   {
+    cb_grp1_ = this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    cb_grp2_ = this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+
     go_to_goal_pose_srv_ = this->create_service<gtg_msgs::srv::GoToGoalPose>("go_to_goal_pose",
-                                                                                        std::bind(&NavNode::goToGoalPose,
-                                                                                                  this,
-                                                                                                  std::placeholders::_1,
-                                                                                                  std::placeholders::_2),
+                                                                             std::bind(&NavNode::goToGoalPose,
+                                                                                       this,
+                                                                                       std::placeholders::_1,
+                                                                                       std::placeholders::_2),
                                                                              rmw_qos_profile_services_default,
-                                                                             cb_grp);
+                                                                             cb_grp1_);
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("odom",
                                                                    std::bind(&NavNode::odomCallback,
                                                                              this,
                                                                              std::placeholders::_1),
                                                                    rmw_qos_profile_sensor_data,
-                                                                   cb_grp);
+                                                                   cb_grp2_);
   }
 
 private:
@@ -54,12 +55,15 @@ private:
       }
     }
 
+    std::cerr << "Finished goToGoalPose" << std::endl;
     response->status = 0;
     response->msg = "MOOOOOO";
   }
 
   rclcpp::Service<gtg_msgs::srv::GoToGoalPose>::SharedPtr go_to_goal_pose_srv_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::callback_group::CallbackGroup::SharedPtr cb_grp1_;
+  rclcpp::callback_group::CallbackGroup::SharedPtr cb_grp2_;
 };
 
 int main(int argc, char * argv[])
@@ -67,10 +71,8 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor executor;
   auto nav = std::make_shared<NavNode>();
-  cb_grp = nav->create_callback_group(rclcpp::callback_group::CallbackGroupType::Reentrant);
   executor.add_node(nav);
   executor.spin();
   rclcpp::shutdown();
   return 0;
 }
-
