@@ -37,6 +37,20 @@ private:
   void goToGoalPose(const std::shared_ptr<gtg_msgs::srv::GoToGoalPose::Request> request,
                     std::shared_ptr<gtg_msgs::srv::GoToGoalPose::Response> response)
   {
+    std::cerr << "Starting goToGoalPose" << std::endl;
+    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+    while (1) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+
+      auto diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
+      if (diff_ms.count() > 5000) {
+        break;
+      }
+    }
+
+    response->status = 0;
+    response->msg = "MOOOOOO";
   }
 
   rclcpp::Service<gtg_msgs::srv::GoToGoalPose>::SharedPtr go_to_goal_pose_srv_;
